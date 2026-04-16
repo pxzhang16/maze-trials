@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maze Trials</title>
+    <script type="module" crossorigin src="./assets/index-TCzkOOzj.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-D1_3JenD.css">
+  </head>
+  <body>
+    <h1>MAZE TRIALS</h1>
+    <div id="level-select"></div>
+    <canvas id="game-canvas"></canvas>
+    <button id="solve-btn">AI SOLVE</button>
+    <div id="touch-controls">
+      <div id="touch-top">
+        <button class="tc-btn" data-action="select-r1">R1</button>
+        <button class="tc-btn tc-dir" data-action="up">&#9650;</button>
+        <button class="tc-btn" data-action="select-r2">R2</button>
+      </div>
+      <div id="touch-mid">
+        <button class="tc-btn tc-dir" data-action="left">&#9664;</button>
+        <button class="tc-btn tc-center" data-action="attach">LINK</button>
+        <button class="tc-btn tc-dir" data-action="right">&#9654;</button>
+      </div>
+      <div id="touch-bot">
+        <button class="tc-btn tc-small" data-action="reset">RST</button>
+        <button class="tc-btn tc-dir" data-action="down">&#9660;</button>
+        <button class="tc-btn tc-small" data-action="next">NXT</button>
+      </div>
+    </div>
+    <div id="controls-help">
+      Q: R1 &nbsp;|&nbsp; E: R2 &nbsp;|&nbsp; Arrows: Move &nbsp;|&nbsp; Space: Attach/Detach &nbsp;|&nbsp; R: Reset &nbsp;|&nbsp; N: Next Level
+    </div>
+  </body>
+</html>
