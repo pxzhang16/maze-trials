@@ -3,3 +3,5 @@ dist
 *.bak-*
 *.bak
 src/logs/
+.env.local
+.env.*.local

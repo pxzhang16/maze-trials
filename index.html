@@ -8,7 +8,12 @@
   <body>
     <h1>MAZE TRIALS</h1>
     <div id="level-select"></div>
-    <canvas id="game-canvas"></canvas>
+    <div id="game-area">
+      <canvas id="game-canvas"></canvas>
+      <aside id="dialogue-panel" aria-label="Robot dialogue">
+        <div id="dialogue-empty">两位机器人在等开场...</div>
+      </aside>
+    </div>
     <button id="solve-btn">AI SOLVE</button>
     <div id="touch-controls">
       <div id="touch-top">
