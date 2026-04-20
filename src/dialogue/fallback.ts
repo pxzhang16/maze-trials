@@ -100,16 +100,6 @@ const LIBRARY: Record<TriggerType, { R1: string[]; R2: string[] }> = {
   },
 };
 
-export function pickFallback(trigger: TriggerType): DialogueLine[] {
-  const pool = LIBRARY[trigger];
-  const r1 = pool.R1[Math.floor(Math.random() * pool.R1.length)];
-  const r2 = pool.R2[Math.floor(Math.random() * pool.R2.length)];
-  return [
-    { speaker: 'R1', line: r1 },
-    { speaker: 'R2', line: r2 },
-  ];
-}
-
 // Build a complete fallback map keyed by moment.triggerActionIndex.
 // Used when batch LLM call fails or times out.
 export function pickAllFallbacks(moments: DialogueMoment[]): Map<number, DialogueLine[]> {

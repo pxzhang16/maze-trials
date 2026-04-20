@@ -96,41 +96,6 @@ export function solve(gameState: GameState): SolverAction[] | null {
     }
   }
 
-  // --- 0-1 BFS blocker count (K=10 penalty per box on shortest path) ---
-  const bkDist = new Int16Array(M);
-  const bkDeque = new Int32Array(M * 2);
-  function blockerCount(boxes: number[]): number {
-    const r3pos = boxes[redIdx];
-    if (r3pos === exitIdx) return 0;
-    bkDist.fill(-1);
-    bkDist[r3pos] = 0;
-    let dqHead = M, dqTail = M;
-    bkDeque[dqTail++] = r3pos;
-    while (dqHead < dqTail) {
-      const c = bkDeque[dqHead++];
-      if (c === exitIdx) return bkDist[c];
-      const cx = c % W, cy = (c - cx) / W;
-      for (let d = 0; d < 4; d++) {
-        const nx = cx + DX[d], ny = cy + DY[d];
-        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-        const ni = ny * W + nx;
-        if (wall[ni] || bkDist[ni] >= 0) continue;
-        let isBlocker = false;
-        for (let j = 0; j < nBox; j++) {
-          if (j !== redIdx && boxes[j] === ni) { isBlocker = true; break; }
-        }
-        if (isBlocker) {
-          bkDist[ni] = bkDist[c] + 1;
-          bkDeque[dqTail++] = ni;
-        } else {
-          bkDist[ni] = bkDist[c];
-          bkDeque[--dqHead] = ni;
-        }
-      }
-    }
-    return 9999;
-  }
-
   // --- Dijkstra heuristic from R3: h = (dist[exit] + K*blockers) * W, W=3 ---
   const DIJK_K = 10;
   const djDist = new Int16Array(M);
@@ -330,39 +295,6 @@ export function solve(gameState: GameState): SolverAction[] | null {
     return unpackWitness(w);
   }
 
-  // --- BFS walk: robot from A to B, avoiding walls, boxes, other robot ---
-  function canReach(from: number, to: number, boxes: number[], otherRobot: number): number[] | null {
-    if (from === to) return [];
-    const visited = new Uint8Array(M);
-    const prev = new Int32Array(M).fill(-1);
-    const prevDir = new Int8Array(M).fill(-1);
-    visited[from] = 1;
-    const q: number[] = [from];
-    let h = 0;
-    while (h < q.length) {
-      const c = q[h++];
-      const cx = c % W, cy = (c - cx) / W;
-      for (let d = 0; d < 4; d++) {
-        const nx = cx + DX[d], ny = cy + DY[d];
-        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-        const ni = ny * W + nx;
-        if (visited[ni] || wall[ni]) continue;
-        if (ni !== to && (boxes.includes(ni) || ni === otherRobot)) continue;
-        visited[ni] = 1; prev[ni] = c; prevDir[ni] = d;
-        if (ni === to) {
-          const path: number[] = [];
-          let p = to;
-          while (p !== from) { path.unshift(prevDir[p]); p = prev[p]; }
-          return path;
-        }
-        q.push(ni);
-      }
-    }
-    return null;
-  }
-  void canReach; // retained for expandAndValidate fallback
-  void blockerCount; // reserved for future use
-
   function pathToSafe(from: number, boxes: number[], otherRobot: number): number[] | null {
     if (safe[from]) return [];
     const visited = new Uint8Array(M);
@@ -430,7 +362,7 @@ export function solve(gameState: GameState): SolverAction[] | null {
       console.log(`Solver: timeout after ${explored} states, ${((performance.now() - startTime) / 1000).toFixed(1)}s`);
       return null;
     }
-    const [fVal, ck] = heap.pop();
+    const [, ck] = heap.pop();
     if (!gMap.has(ck)) continue;
     decodeBoxes(ck, bp);
     const [r1, r2] = unpackWitness(witnessMap.get(ck)!);
@@ -450,12 +382,6 @@ export function solve(gameState: GameState): SolverAction[] | null {
         }
       }
       if (c1Safe && c2Safe) {
-        // TRACE: dump search chain before expansion
-        {
-          const chain: number[] = [];
-          let k = ck;
-          while (k !== -1) { chain.unshift(k); k = parent.get(k)!; }
-        }
         const actions = expandAndValidate(ck);
         if (actions) {
           console.log(`Solver: verified solution, ${explored} states, ${actions.length} actions`);
@@ -740,7 +666,7 @@ export function solve(gameState: GameState): SolverAction[] | null {
     }
 
     for (let ci = 0; ci < chain.length - 1; ci++) {
-      const [cr1, cr2] = decodeStateFromWitness(chain[ci], curBp);
+      decodeStateFromWitness(chain[ci], curBp);
       decodeStateFromWitness(chain[ci + 1], nextBp);
 
       const info = actionInfo.get(chain[ci + 1])!;

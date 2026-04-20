@@ -32,7 +32,17 @@ interface Snapshot {
 // Deep-clone and replay actions; snapshots[i] = state BEFORE action i.
 // snapshots[actions.length] = final state after all actions.
 function simulate(initialState: GameState, actions: SolverAction[]): Snapshot[] {
-  const state: GameState = JSON.parse(JSON.stringify(initialState));
+  const state: GameState = {
+    ...initialState,
+    robots: [
+      { ...initialState.robots[0], pos: { ...initialState.robots[0].pos } },
+      { ...initialState.robots[1], pos: { ...initialState.robots[1].pos } },
+    ],
+    boxes: initialState.boxes.map((b) => ({ ...b, pos: { ...b.pos } })),
+    steps: 0,
+    won: false,
+    winPhase: 0,
+  };
   const snapshots: Snapshot[] = [];
   for (let i = 0; i < actions.length; i++) {
     snapshots.push(capture(state));

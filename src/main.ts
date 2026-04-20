@@ -174,7 +174,7 @@ async function startPlayback(actions: SolverAction[]): Promise<void> {
   playedMomentIndices = new Set();
 
   // Pre-fetch all dialogue in one LLM call.
-  solveBtn.textContent = '生成对话...';
+  solveBtn.textContent = '计划路线...';
   const t0 = performance.now();
   const batch = await requestAllDialogues(moments, currentLevelIndex, signal);
   const dt = performance.now() - t0;

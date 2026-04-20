@@ -46,13 +46,7 @@ export function appendLine(line: DialogueLine): Promise<void> {
 
   panel.appendChild(bubble);
   recent.push(line);
-
-  // Trim from top if exceeding cap.
-  while (recent.length > MAX_BUBBLES) {
-    recent.shift();
-    const firstBubble = panel.querySelector('.bubble');
-    if (firstBubble) firstBubble.remove();
-  }
+  if (recent.length > MAX_BUBBLES) recent.shift();
 
   panel.scrollTop = panel.scrollHeight;
   return new Promise<void>((resolve) => setTimeout(resolve, BUBBLE_PAUSE_MS));

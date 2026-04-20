@@ -290,8 +290,8 @@ function drawBeetle(
 
 // --- Robots ---
 function drawRobots(ctx: CanvasRenderingContext2D, state: GameState): void {
-  state.robots.forEach((robot, i) => {
-    drawRobot(ctx, robot, i === state.selectedRobotIndex);
+  state.robots.forEach((robot) => {
+    drawRobot(ctx, robot);
   });
 }
 
@@ -310,7 +310,6 @@ function drawSelectionRing(ctx: CanvasRenderingContext2D, state: GameState): voi
 function drawRobot(
   ctx: CanvasRenderingContext2D,
   robot: Robot,
-  _isSelected: boolean
 ): void {
   const cx = robot.pos.x * TILE_SIZE + TILE_SIZE / 2;
   const cy = robot.pos.y * TILE_SIZE + TILE_SIZE / 2;

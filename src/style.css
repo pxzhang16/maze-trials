@@ -76,6 +76,25 @@ h1 {
   overflow-y: auto;
   font-size: 14px;
   line-height: 1.45;
+  scrollbar-width: thin;
+  scrollbar-color: #555 #20203a;
+}
+
+#dialogue-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+#dialogue-panel::-webkit-scrollbar-track {
+  background: #20203a;
+}
+
+#dialogue-panel::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+}
+
+#dialogue-panel::-webkit-scrollbar-thumb:hover {
+  background: #777;
 }
 
 #dialogue-empty {
