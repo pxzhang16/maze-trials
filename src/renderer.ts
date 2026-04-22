@@ -9,10 +9,16 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
   const ctx = canvas.getContext('2d')!;
 
   function render(state: GameState, levelName: string): void {
-    canvas.width = state.width * TILE_SIZE;
-    canvas.height = state.height * TILE_SIZE + 50; // extra space for HUD
+    const dpr = window.devicePixelRatio || 1;
+    const logicalW = state.width * TILE_SIZE;
+    const logicalH = state.height * TILE_SIZE + 50;
+    canvas.width = logicalW * dpr;
+    canvas.height = logicalH * dpr;
+    canvas.style.width = `${logicalW}px`;
+    canvas.style.height = `${logicalH}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, logicalW, logicalH);
 
     drawGrid(ctx, state);
     drawSafeZoneOverlay(ctx, state);
@@ -410,37 +416,46 @@ function drawHUD(
 ): void {
   const hudY = state.height * TILE_SIZE;
   const hudH = 50;
+  const canvasW = state.width * TILE_SIZE;
 
   ctx.fillStyle = COLORS.hudBg;
-  ctx.fillRect(0, hudY, state.width * TILE_SIZE, hudH);
+  ctx.fillRect(0, hudY, canvasW, hudH);
 
-  ctx.font = 'bold 16px monospace';
+  const fontSize = Math.min(16, canvasW / 22);
+  ctx.font = `bold ${fontSize}px monospace`;
   ctx.textBaseline = 'middle';
   const cy = hudY + hudH / 2;
 
-  // Level name
-  ctx.fillStyle = COLORS.hudText;
-  ctx.textAlign = 'left';
-  ctx.fillText(levelName, 10, cy);
-
-  // Selected robot
   const selRobot = state.robots[state.selectedRobotIndex];
-  const robotColor =
-    selRobot.id === 'R1' ? COLORS.robotA : COLORS.robotC;
-  ctx.fillStyle = robotColor;
-  const mid = (state.width * TILE_SIZE) / 2;
-  ctx.textAlign = 'center';
-  ctx.fillText(
-    `Robot: ${selRobot.id}` +
-      (selRobot.attachedBoxIndex !== null ? ' [ATTACHED]' : ''),
-    mid,
-    cy
-  );
+  const robotColor = selRobot.id === 'R1' ? COLORS.robotA : COLORS.robotC;
+  const attached = selRobot.attachedBoxIndex !== null;
 
-  // Step counter
-  ctx.fillStyle = COLORS.hudText;
-  ctx.textAlign = 'right';
-  ctx.fillText(`Steps: ${state.steps}`, state.width * TILE_SIZE - 10, cy);
+  if (canvasW < 400) {
+    // Compact: two items only — robot status (left) + steps (right)
+    ctx.fillStyle = robotColor;
+    ctx.textAlign = 'left';
+    ctx.fillText('Robot: ' + selRobot.id + (attached ? ' LINK' : ''), 10, cy);
+
+    ctx.fillStyle = COLORS.hudText;
+    ctx.textAlign = 'right';
+    ctx.fillText(`${state.steps} steps`, canvasW - 10, cy);
+  } else {
+    ctx.fillStyle = COLORS.hudText;
+    ctx.textAlign = 'left';
+    ctx.fillText(levelName, 10, cy);
+
+    ctx.fillStyle = robotColor;
+    ctx.textAlign = 'center';
+    ctx.fillText(
+      `${selRobot.id}` + (attached ? ' [ATTACHED]' : ''),
+      canvasW / 2,
+      cy
+    );
+
+    ctx.fillStyle = COLORS.hudText;
+    ctx.textAlign = 'right';
+    ctx.fillText(`Steps: ${state.steps}`, canvasW - 10, cy);
+  }
 }
 
 // --- Win Overlay ---

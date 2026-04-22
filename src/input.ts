@@ -49,10 +49,8 @@ export function setupInput(
 
   function canvasPosToGrid(clientX: number, clientY: number): { gx: number; gy: number } {
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const gx = Math.floor((clientX - rect.left) * scaleX / TILE_SIZE);
-    const gy = Math.floor((clientY - rect.top) * scaleY / TILE_SIZE);
+    const gx = Math.floor((clientX - rect.left) / rect.width * (canvas.width / (window.devicePixelRatio || 1)) / TILE_SIZE);
+    const gy = Math.floor((clientY - rect.top) / rect.height * (canvas.height / (window.devicePixelRatio || 1)) / TILE_SIZE);
     return { gx, gy };
   }
 
