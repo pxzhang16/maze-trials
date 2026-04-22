@@ -176,8 +176,17 @@ function handleAction(action: GameAction): void {
   if (state.won) startWinSequence();
 }
 
+function getAvailableCanvasHeight(): number {
+  let used = 0;
+  for (const sel of ['h1', '#level-select', '#solve-btn', '#touch-controls']) {
+    const el = document.querySelector(sel) as HTMLElement | null;
+    if (el) used += el.offsetHeight;
+  }
+  return window.innerHeight - used - 60;
+}
+
 function render(): void {
-  computeTileSize(state.width, state.height);
+  computeTileSize(state.width, state.height, getAvailableCanvasHeight());
   renderer.render(state, LEVELS[currentLevelIndex].name);
 }
 

@@ -3,9 +3,9 @@ const HUD_HEIGHT = 50;
 
 export let TILE_SIZE = MAX_TILE_SIZE;
 
-export function computeTileSize(levelWidth: number, levelHeight: number): void {
+export function computeTileSize(levelWidth: number, levelHeight: number, availableHeight?: number): void {
   const maxW = window.innerWidth * 0.95;
-  const maxH = window.innerHeight * 0.55;
+  const maxH = availableHeight ?? window.innerHeight * 0.55;
   const fitW = Math.floor(maxW / levelWidth);
   const fitH = Math.floor(maxH / (levelHeight + HUD_HEIGHT / MAX_TILE_SIZE));
   TILE_SIZE = Math.min(MAX_TILE_SIZE, fitW, fitH);
