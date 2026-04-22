@@ -122,13 +122,14 @@ function drawBoxes(ctx: CanvasRenderingContext2D, state: GameState): void {
 function drawBox(ctx: CanvasRenderingContext2D, box: Box): void {
   const px = box.pos.x * TILE_SIZE;
   const py = box.pos.y * TILE_SIZE;
-  const margin = 6;
+  const margin = Math.round(TILE_SIZE * 0.09);
   const size = TILE_SIZE - margin * 2;
+  const r = Math.round(TILE_SIZE * 0.09);
 
   if (box.isRedBuddy) {
     // Red cargo box
     ctx.fillStyle = COLORS.boxRedBuddy;
-    roundRect(ctx, px + margin, py + margin, size, size, 6);
+    roundRect(ctx, px + margin, py + margin, size, size, r);
     ctx.fill();
     ctx.strokeStyle = COLORS.boxRedBuddyStroke;
     ctx.lineWidth = 2;
@@ -148,7 +149,7 @@ function drawBox(ctx: CanvasRenderingContext2D, box: Box): void {
   } else {
     // Normal cardboard box
     ctx.fillStyle = COLORS.boxNormal;
-    roundRect(ctx, px + margin, py + margin, size, size, 6);
+    roundRect(ctx, px + margin, py + margin, size, size, r);
     ctx.fill();
     ctx.strokeStyle = COLORS.boxNormalStroke;
     ctx.lineWidth = 2;
