@@ -1,6 +1,11 @@
-import type { GameAction } from './types';
+import type { GameAction, Direction } from './types';
+import { TILE_SIZE } from './constants';
 
-export function setupInput(onAction: (action: GameAction) => void): void {
+export function setupInput(
+  onAction: (action: GameAction) => void,
+  canvas: HTMLCanvasElement,
+  onTap: (gridX: number, gridY: number) => void,
+): void {
   window.addEventListener('keydown', (e) => {
     switch (e.key) {
       case 'ArrowUp':
@@ -41,4 +46,56 @@ export function setupInput(onAction: (action: GameAction) => void): void {
         break;
     }
   });
+
+  function canvasPosToGrid(clientX: number, clientY: number): { gx: number; gy: number } {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const gx = Math.floor((clientX - rect.left) * scaleX / TILE_SIZE);
+    const gy = Math.floor((clientY - rect.top) * scaleY / TILE_SIZE);
+    return { gx, gy };
+  }
+
+  canvas.addEventListener('click', (e) => {
+    const { gx, gy } = canvasPosToGrid(e.clientX, e.clientY);
+    onTap(gx, gy);
+  });
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+  const SWIPE_THRESHOLD = 30;
+  const TAP_MAX_DIST = 15;
+
+  canvas.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+    e.preventDefault();
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    if (absDx < TAP_MAX_DIST && absDy < TAP_MAX_DIST) {
+      const { gx, gy } = canvasPosToGrid(t.clientX, t.clientY);
+      onTap(gx, gy);
+      e.preventDefault();
+      return;
+    }
+
+    if (absDx < SWIPE_THRESHOLD && absDy < SWIPE_THRESHOLD) return;
+
+    let direction: Direction;
+    if (absDx > absDy) {
+      direction = dx > 0 ? 'right' : 'left';
+    } else {
+      direction = dy > 0 ? 'down' : 'up';
+    }
+    onAction({ type: 'move', direction });
+    e.preventDefault();
+  }, { passive: false });
 }

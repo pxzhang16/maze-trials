@@ -1,4 +1,16 @@
-export const TILE_SIZE = 64;
+const MAX_TILE_SIZE = 64;
+const HUD_HEIGHT = 50;
+
+export let TILE_SIZE = MAX_TILE_SIZE;
+
+export function computeTileSize(levelWidth: number, levelHeight: number): void {
+  const maxW = window.innerWidth * 0.95;
+  const maxH = window.innerHeight * 0.55;
+  const fitW = Math.floor(maxW / levelWidth);
+  const fitH = Math.floor(maxH / (levelHeight + HUD_HEIGHT / MAX_TILE_SIZE));
+  TILE_SIZE = Math.min(MAX_TILE_SIZE, fitW, fitH);
+  if (TILE_SIZE < 16) TILE_SIZE = 16;
+}
 
 export const COLORS = {
   wall: '#3a3a4a',

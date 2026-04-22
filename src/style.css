@@ -13,6 +13,7 @@ body {
   min-height: 100vh;
   font-family: 'Segoe UI', sans-serif;
   color: #ffffff;
+  overflow: hidden;
 }
 
 h1 {
@@ -25,9 +26,12 @@ h1 {
 #level-select {
   margin-bottom: 10px;
   display: grid;
-  grid-template-columns: repeat(10, 44px);
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 6px;
   justify-content: center;
+  width: 100%;
+  max-width: min(520px, 95vw);
+  padding: 0 4px;
 }
 
 #level-select button {
@@ -57,6 +61,7 @@ h1 {
 #game-canvas {
   border: 2px solid #444;
   border-radius: 4px;
+  touch-action: none;
 }
 
 #solve-btn {
@@ -101,9 +106,9 @@ h1 {
 }
 
 .tc-btn {
-  width: 56px;
-  height: 56px;
-  font-size: 20px;
+  width: min(56px, 15vw);
+  height: min(56px, 15vw);
+  font-size: min(20px, 5vw);
   font-family: monospace;
   font-weight: bold;
   border: 2px solid #555;
@@ -126,7 +131,7 @@ h1 {
 .tc-dir {
   background: #1e3a5f;
   color: #6af;
-  font-size: 24px;
+  font-size: min(24px, 6vw);
 }
 
 .tc-dir:active {
@@ -144,8 +149,8 @@ h1 {
 }
 
 .tc-small {
-  font-size: 13px;
-  width: 56px;
+  font-size: min(13px, 3.5vw);
+  width: min(56px, 15vw);
   background: #333;
 }
 
@@ -160,5 +165,4 @@ h1 {
 @media (max-width: 600px) {
   #controls-help { display: none; }
   h1 { font-size: 22px; margin-bottom: 8px; }
-  #game-canvas { max-width: 95vw; }
 }
