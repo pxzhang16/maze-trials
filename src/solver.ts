@@ -7,9 +7,19 @@ export type SolverAction =
   | { type: 'selectRobot'; id: 'R1' | 'R2' }
   | { type: 'toggleAttach' };
 
+export interface SolverOptions {
+  seed?: number;
+  attempts?: number;
+  perAttemptTimeoutMs?: number;
+  randomness?: number;
+}
+
 const DX = [0, 0, -1, 1];
 const DY = [-1, 1, 0, 0];
 const DIR_NAMES: Direction[] = ['up', 'down', 'left', 'right'];
+const DEFAULT_RANDOMNESS = 0.001;
+const DEFAULT_PER_ATTEMPT_TIMEOUT_MS = 10_000;
+const SEED_STRIDE = 0x9e3779b9;
 
 class MinHeap {
   private d: [number, number][] = [];
@@ -44,6 +54,49 @@ class MinHeap {
   }
 }
 
+function createRng(seed: number): () => number {
+  let t = seed >>> 0;
+  return () => {
+    t = (t + 0x6d2b79f5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleInPlace<T>(items: T[], rng: () => number): void {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+}
+
+export function solve(gameState: GameState, options: SolverOptions = {}): SolverAction[] | null {
+  const attempts = Math.max(1, Math.floor(options.attempts ?? 1));
+  const perAttemptTimeoutMs = Math.max(1, options.perAttemptTimeoutMs ?? DEFAULT_PER_ATTEMPT_TIMEOUT_MS);
+  const shouldRandomize = attempts > 1 || options.seed !== undefined || (options.randomness ?? 0) > 0;
+  const randomness = shouldRandomize ? Math.max(0, options.randomness ?? DEFAULT_RANDOMNESS) : 0;
+  const baseSeed = (options.seed ?? 0x12345678) >>> 0;
+
+  if (attempts === 1) {
+    const rng = createRng(baseSeed);
+    return solveOnce(gameState, rng, randomness, perAttemptTimeoutMs);
+  }
+
+  let best: SolverAction[] | null = null;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const rng = createRng((baseSeed + Math.imul(attempt, SEED_STRIDE)) >>> 0);
+    const solution = solveOnce(gameState, rng, randomness, perAttemptTimeoutMs);
+    if (solution && (!best || solution.length < best.length)) {
+      best = solution;
+    }
+  }
+  if (best) {
+    console.log(`Solver: selected best of ${attempts} attempts, ${best.length} actions`);
+  }
+  return best;
+}
+
 // ============================================================
 // Macro-move solver using connected-component abstraction.
 // State key = (compSig, canonicalBoxPositions) where compSig
@@ -51,7 +104,12 @@ class MinHeap {
 // Exact robot positions stored as witnesses in witnessMap.
 // Transition = one robot walks to a box and pushes/pulls it.
 // ============================================================
-export function solve(gameState: GameState): SolverAction[] | null {
+function solveOnce(
+  gameState: GameState,
+  rng: () => number,
+  randomTieNoise: number,
+  timeoutMs: number
+): SolverAction[] | null {
   const W = gameState.width;
   const H = gameState.height;
   const M = W * H;
@@ -408,11 +466,30 @@ export function solve(gameState: GameState): SolverAction[] | null {
   const gMap = new Map<number, number>();
   const heap = new MinHeap();
   const lastMove = new Map<number, number>();
+  const randomizeExpansion = randomTieNoise > 0;
+  const robotOrder = [0, 1];
+  const dirOrder = [0, 1, 2, 3];
+  const boxOrder: number[] = new Array(nBox);
+  for (let i = 0; i < nBox; i++) boxOrder[i] = i;
+
+  function priority(base: number): number {
+    return randomTieNoise > 0 ? base + rng() * randomTieNoise : base;
+  }
+
+  function prepareExpansionOrder(): void {
+    if (!randomizeExpansion) return;
+    robotOrder[0] = 0; robotOrder[1] = 1;
+    dirOrder[0] = 0; dirOrder[1] = 1; dirOrder[2] = 2; dirOrder[3] = 3;
+    for (let i = 0; i < nBox; i++) boxOrder[i] = i;
+    shuffleInPlace(robotOrder, rng);
+    shuffleInPlace(dirOrder, rng);
+    shuffleInPlace(boxOrder, rng);
+  }
 
   parent.set(initKey, -1);
   gMap.set(initKey, 0);
   witnessMap.set(initKey, packWitness(initR1, initR2));
-  heap.push(dijkstraFromR3(initBoxes, initR1, initR2) * 3, initKey);
+  heap.push(priority(dijkstraFromR3(initBoxes, initR1, initR2) * 3), initKey);
   lastMove.set(initKey, -1);
 
   // Pre-allocated buffers for BFS cache (avoid per-state allocation)
@@ -420,13 +497,12 @@ export function solve(gameState: GameState): SolverAction[] | null {
   const bfsQBuf: number[] = [];
 
   const MAX = 3_000_000;
-  const TIMEOUT = 10_000; // 10 seconds
   const startTime = performance.now();
   const bp: number[] = new Array(nBox);
   let explored = 0;
 
   while (heap.size > 0 && explored < MAX) {
-    if ((explored & 0xFFF) === 0 && performance.now() - startTime > TIMEOUT) {
+    if ((explored & 0xFFF) === 0 && performance.now() - startTime > timeoutMs) {
       console.log(`Solver: timeout after ${explored} states, ${((performance.now() - startTime) / 1000).toFixed(1)}s`);
       return null;
     }
@@ -499,17 +575,22 @@ export function solve(gameState: GameState): SolverAction[] | null {
     }
     const reachDist = reachDistBufs;
 
+    prepareExpansionOrder();
+
     // For each robot, try macro moves (push/pull each box 1..N tiles)
-    for (let ri = 0; ri < 2; ri++) {
+    for (let roi = 0; roi < 2; roi++) {
+      const ri = robotOrder[roi];
       const robotPos = rpos[ri];
       const otherPos = rpos[1 - ri];
       const rDist = reachDist[ri];
 
-      for (let bi = 0; bi < nBox; bi++) {
+      for (let boi = 0; boi < nBox; boi++) {
+        const bi = boxOrder[boi];
         const bpos0 = bp[bi];
         const bx0 = bpos0 % W, by0 = (bpos0 - bx0) / W;
 
-        for (let d = 0; d < 4; d++) {
+        for (let doi = 0; doi < 4; doi++) {
+          const d = dirOrder[doi];
           const dx = DX[d], dy = DY[d];
           // Anti-reversal: don't undo the last box move
           if (prevBoxPos === bpos0 && d === (prevDir ^ 1)) continue;
@@ -552,7 +633,7 @@ export function solve(gameState: GameState): SolverAction[] | null {
                       witnessMap.set(nk, packWitness(newR1, newR2));
                       actionInfo.set(nk, (n << 5) | (ri << 4) | (d << 2) | 0);
                       lastMove.set(nk, (dest << 2) | d);
-                      heap.push(ng + dijkstraFromR3(bp, newR1, newR2) * 3 - (bi === redIdx ? 1 : 0), nk);
+                      heap.push(priority(ng + dijkstraFromR3(bp, newR1, newR2) * 3 - (bi === redIdx ? 1 : 0)), nk);
                     }
                     bp[bi] = saved;
                     cx = nx; cy = ny;
@@ -603,7 +684,7 @@ export function solve(gameState: GameState): SolverAction[] | null {
                       witnessMap.set(nk, packWitness(newR1, newR2));
                       actionInfo.set(nk, (n << 5) | (ri << 4) | (d << 2) | 2);
                       lastMove.set(nk, (bDest << 2) | d);
-                      heap.push(ng + dijkstraFromR3(bp, newR1, newR2) * 3 - (bi === redIdx ? 1 : 0), nk);
+                      heap.push(priority(ng + dijkstraFromR3(bp, newR1, newR2) * 3 - (bi === redIdx ? 1 : 0)), nk);
                     }
                     bp[bi] = saved;
                     rCx = rnx; rCy = rny;
@@ -639,7 +720,7 @@ export function solve(gameState: GameState): SolverAction[] | null {
             witnessMap.set(nk, packWitness(wR1, wR2));
             actionInfo.set(nk, (0 << 5) | (ri << 4) | 1); // walkOnly
             lastMove.set(nk, -1);
-            heap.push(ng + dijkstraFromR3(bp, wR1, wR2) * 3, nk);
+            heap.push(priority(ng + dijkstraFromR3(bp, wR1, wR2) * 3), nk);
           }
         }
       }

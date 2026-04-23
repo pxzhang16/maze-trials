@@ -120,7 +120,12 @@ solveBtn.addEventListener('click', () => {
   setTimeout(() => {
     const t0 = performance.now();
     const freshState = createStateFromLevel(LEVELS[currentLevelIndex]);
-    const solution = solve(freshState);
+    const solution = solve(freshState, {
+      seed: Date.now(),
+      attempts: 3,
+      perAttemptTimeoutMs: 10_000,
+      randomness: 0.001,
+    });
     const dt = performance.now() - t0;
 
     if (solution) {
